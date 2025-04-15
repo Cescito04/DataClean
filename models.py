@@ -1,13 +1,19 @@
-from app1 import db  # Importer db de manière correcte après l'initialisation de l'app
+from app import db
 
 class User(db.Model):
-    __tablename__ = 'users'
-
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
-    email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(150), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+    cleaned_files = db.relationship('CleanedFile', backref='user', lazy=True)
 
     def __repr__(self):
-        return f'<User {self.username}>'
+        return f'<User {self.name}>'
+
+class CleanedFile(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    original_name = db.Column(db.String(255), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
 

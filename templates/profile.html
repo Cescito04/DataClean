@@ -3,45 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API de Nettoyage de Données</title>
+    <title>Profil - DataClean</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <div class="app-container">
-          <!-- Barre de navigation supérieure -->
-          <nav class="top-navbar">
+        <nav class="top-navbar">
             <div class="nav-left">
                 <div class="logo">
                     <i class="fas fa-broom"></i>
-                    <h1>DataClean </h1>
+                    <h1>DataClean</h1>
                 </div>
             </div>
             <div class="nav-right">
-                <button id="historyBtn" class="history-btn">
-                    <i class="fas fa-history"></i> Historique
-                </button>
                 <div class="user-profile">
                     <i class="fas fa-user-circle user-icon"></i>
-                    <span class="user-email">{{ session.get('email', 'Invité') }}</span>
+                    <span class="user-name">{{ user.name }}</span>
                 </div>
                 <a href="/logout" class="logout-btn" title="Déconnexion">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
             </div>
         </nav>
-        <header class="app-header" style="margin-top: 50px;">
-            <div class="logo">
-                <i class="fas fa-broom"></i>
-                <h1>DataClean </h1>
-            </div>
-            <p class="tagline">Votre solution professionnelle de nettoyage de données</p>
-        </header>
 
-        <main class="main-content">
-            <div class="upload-card">
-                <h2><i class="fas fa-cloud-upload-alt"></i> Uploader votre fichier CSV</h2>
+        <main class="profile-content">
+            <div class="profile-header">
+                <h1>Bienvenue, {{ user.name }}!</h1>
+                <p class="user-email">{{ user.email }}</p>
+            </div>
+
+            <div class="upload-section">
+                <h2><i class="fas fa-cloud-upload-alt"></i> Nettoyer un nouveau fichier</h2>
                 <form id="uploadForm" class="upload-form">
                     <div class="file-input-container">
                         <label for="fileInput" class="file-label">
@@ -56,14 +50,38 @@
                     </button>
                 </form>
             </div>
-            
+
             <div id="resultContainer" class="result-container">
-                <!-- Les résultats apparaîtront ici -->
+                <!-- Les résultats du nettoyage apparaîtront ici -->
+            </div>
+
+            <div class="files-history">
+                <h2><i class="fas fa-history"></i> Historique des fichiers nettoyés</h2>
+                {% if cleaned_files %}
+                <div class="files-grid">
+                    {% for file in cleaned_files %}
+                    <div class="file-card">
+                        <div class="file-icon">
+                            <i class="fas fa-file-csv"></i>
+                        </div>
+                        <div class="file-info">
+                            <h3>{{ file.original_name }}</h3>
+                            <p class="file-date">{{ file.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                        </div>
+                        <a href="{{ url_for('download_file', filename=file.filename) }}" class="download-btn">
+                            <i class="fas fa-download"></i> Télécharger
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="no-files">Aucun fichier nettoyé pour le moment</p>
+                {% endif %}
             </div>
         </main>
 
         <footer class="app-footer">
-            <p>© 2025 DataClean  - Tous droits réservés</p>
+            <p>© 2025 DataClean - Tous droits réservés</p>
         </footer>
     </div>
 
@@ -92,7 +110,6 @@
             const formData = new FormData();
             formData.append('file', file);
             
-            // Afficher un message de chargement
             resultContainer.innerHTML = `
                 <div class="alert info">
                     <i class="fas fa-spinner fa-spin"></i>
@@ -111,115 +128,35 @@
                     resultContainer.innerHTML = `
                         <div class="alert success">
                             <i class="fas fa-check-circle"></i>
-                            <div class="alert-content">
-                                <span class="alert-message">${data.message}</span>
-                                <div class="file-info">
-                                    <p><i class="fas fa-columns"></i> Colonnes: ${data.columns.join(', ')}</p>
-                                    <p><i class="fas fa-list-ol"></i> Lignes: ${data.row_count}</p>
-                                </div>
-                                <a href="/api/download/${data.filename}" class="download-btn">
-                                    <i class="fas fa-download"></i> Télécharger le fichier nettoyé
-                                </a>
+                            <span>${data.message}</span>
+                            <div class="file-stats">
+                                <p>Colonnes: ${data.columns.join(', ')}</p>
+                                <p>Nombre de lignes: ${data.row_count}</p>
                             </div>
+                            <a href="/download/${data.filename}" class="download-btn">
+                                <i class="fas fa-download"></i> Télécharger le fichier nettoyé
+                            </a>
                         </div>`;
+                    
+                    // Recharger la page après 2 secondes pour mettre à jour l'historique
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
                 } else {
                     resultContainer.innerHTML = `
                         <div class="alert error">
-                            <i class="fas fa-times-circle"></i>
-                            <span>Erreur: ${data.error}</span>
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span>${data.error}</span>
                         </div>`;
                 }
             } catch (error) {
                 resultContainer.innerHTML = `
                     <div class="alert error">
-                        <i class="fas fa-times-circle"></i>
-                        <span>Erreur de connexion: ${error.message}</span>
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>Une erreur est survenue lors du traitement</span>
                     </div>`;
             }
         });
     </script>
-    <div id="historyModal" class="history-modal">
-        <div class="history-content">
-            <span class="close-history">&times;</span>
-            <h2><i class="fas fa-history"></i> Historique des fichiers nettoyés</h2>
-            <div id="historyList"></div>
-        </div>
-    </div>
-    <script>
-        // Gestion de l'historique
-        document.getElementById('historyBtn').addEventListener('click', async function() {
-    const modal = document.getElementById('historyModal');
-    const historyList = document.getElementById('historyList');
-    
-    modal.style.display = 'flex';
-    historyList.innerHTML = '<p class="loading">Chargement de l\'historique...</p>';
-    
-    try {
-        const response = await fetch('/api/history', {
-            credentials: 'include'  // Important pour les sessions
-        });
-        
-        const data = await response.json();
-        
-        if (data.success && data.files.length > 0) {
-            historyList.innerHTML = data.files.map(file => `
-                <div class="history-item">
-                    <div class="file-info">
-                        <i class="fas fa-file-csv"></i>
-                        <span>${file.original_name}</span>
-                        <small>${file.cleaned_at}</small>
-                    </div>
-                    <button class="download-btn small" onclick="downloadFile('${file.filename}', '${file.original_name}')">
-                        <i class="fas fa-download"></i> Télécharger
-                    </button>
-                </div>
-            `).join('');
-        } else {
-            historyList.innerHTML = '<p class="no-history">Aucun fichier dans l\'historique</p>';
-        }
-    } catch (error) {
-        historyList.innerHTML = '<p class="error">Erreur lors du chargement de l\'historique</p>';
-        console.error('Erreur:', error);
-    }
-});
-
-// Ajoutez cette fonction globale
-window.downloadFile = async function(filename, originalName) {
-    try {
-        const response = await fetch(`/api/download/${filename}`, {
-            credentials: 'include'
-        });
-        
-        if (!response.ok) {
-            throw new Error(await response.text());
-        }
-        
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = originalName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-    } catch (error) {
-        alert('Erreur lors du téléchargement: ' + error.message);
-    }
-};
-
-
-document.querySelector('.close-history').addEventListener('click', function() {
-    document.getElementById('historyModal').style.display = 'none';
-});
-
-// Fermer quand on clique en dehors du modal
-window.addEventListener('click', function(event) {
-    if (event.target === document.getElementById('historyModal')) {
-        document.getElementById('historyModal').style.display = 'none';
-    }
-});
-    </script>
 </body>
-
 </html>

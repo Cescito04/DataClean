@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, send_file, render_template, redirect,
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from functools import wraps
 import pandas as pd
 import numpy as np
@@ -28,11 +29,13 @@ app.config['CLEANED_FOLDER'] = os.getenv('CLEANED_FOLDER', 'cleaned')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['CLEANED_FOLDER'], exist_ok=True)
 
-# Initialisation de SQLAlchemy
+# Initialisation de SQLAlchemy et Flask-Migrate
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 # Modèles
 class User(db.Model):
+    __tablename__ = 'users'  # Avoid PostgreSQL reserved word
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -41,7 +44,7 @@ class User(db.Model):
 
 class CleanedFile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     original_name = db.Column(db.String(255), nullable=False)
     filename = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
@@ -51,7 +54,8 @@ def is_logged_in(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'loggedin' not in session:
-            return jsonify({'success': False, 'error': 'Authentification requise'}), 401
+            flash('Veuillez vous connecter pour accéder à cette page', 'danger')
+            return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -102,7 +106,7 @@ def login():
             session['id'] = user.id
             session['name'] = user.name
             flash('Connexion réussie!', 'success')
-            return redirect(url_for('index'))
+            return redirect(url_for('profile'))
         else:
             flash('Email ou mot de passe incorrect', 'danger')
     

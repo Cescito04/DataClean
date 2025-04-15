@@ -4,7 +4,9 @@ WORKDIR /app
 
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip config set global.index-url https://pypi.org/simple/ && \
+    pip config set global.timeout 180 && \
+    pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
