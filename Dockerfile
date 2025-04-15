@@ -12,4 +12,6 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["flask", "run", "--host=0.0.0.0", "--port=5000"]
+RUN echo "from app import db; db.create_all()" > init_db.py
+
+CMD sh -c "python init_db.py && flask run --host=0.0.0.0 --port=5000"
